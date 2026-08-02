@@ -11,23 +11,77 @@ function uranite(hljs) {
             'public private protect function class struct interface trait enum extends implements ' +
             'raises raise except try finally final Readonly match switch case async await ' +
             'return package import from use as delete new instanceof subclassof lambda unit ' +
-            'backed property Meta Callable if elif else for while break continue yield pass ' +
+            'backed property if elif else for while break continue yield pass ' +
             'defer export extern type const mut ref own move addressof unsafe virtual override ' +
-            'abstract static native and or not is in where self parent asm volatile',
+            'abstract static native and or not is in self parent asm volatile output input clobber',
         type:
-            'I8 I16 I32 I64 U8 U16 U32 U64 F32 F64 Int UInt Float Double String Boolean Char Byte Bytes Long Integer Void NoneType Object',
+            'I8 I16 I32 I64 U8 U16 U32 U64 F32 F64 Int UInt Float Double Boolean String Char Byte Bytes ' +
+            'Long Integer Void NoneType Object Callable Meta Future Generator',
         literal:
             'True False None'
     };
-    const STRING = {
+
+    const BLOCK_COMMENT = {
+        className: 'comment',
+        begin: /#\{/,
+        end: /\}#/,
+        contains: [
+            {
+                className: 'doctag',
+                begin: /@[a-zA-Z]+/
+            }
+        ]
+    };
+
+    const LINE_COMMENT = {
+        className: 'comment',
+        begin: /#/,
+        end: /$/,
+        contains: [
+            {
+                className: 'doctag',
+                begin: /@[a-zA-Z]+/
+            }
+        ]
+    };
+
+    const DOC_EXAMPLE = {
+        begin: /^\s*>>>/,
+        end: /$/,
+        className: 'code',
+        relevance: 0
+    };
+
+    const DOCSTRING = {
         className: 'string',
         variants: [
             { begin: /"""/, end: /"""/ },
-            { begin: /'''/, end: /'''/ },
-            hljs.QUOTE_STRING_MODE,
-            hljs.APOS_STRING_MODE
+            { begin: /'''/, end: /'''/ }
+        ],
+        contains: [
+            {
+                className: 'doctag',
+                begin: /^\s*(Parameters|Returns|Raises|Generics|Complexity|Requires|Stability|Examples|See Also):/
+            },
+            DOC_EXAMPLE,
+            hljs.BACKSLASH_ESCAPE
         ]
     };
+
+    const STRING = {
+        className: 'string',
+        variants: [
+            hljs.QUOTE_STRING_MODE,
+            hljs.APOS_STRING_MODE
+        ],
+        contains: [
+            {
+                className: 'char.escape',
+                begin: /\\(n|t|r|\\|0|'|"|x[0-9a-fA-F]{2})/
+            }
+        ]
+    };
+
     const NUMBER = {
         className: 'number',
         variants: [
@@ -39,66 +93,127 @@ function uranite(hljs) {
         ],
         relevance: 0
     };
-    const BLOCK_LINE_COMMENT = {
-        className: 'comment',
-        begin: /#\{/,
-        end: /\}#/,
+
+    const DECORATOR = {
+        className: 'meta',
+        begin: /@[a-zA-Z_][a-zA-Z0-9_]*/,
+        relevance: 5
+    };
+
+    const OPERATOR = {
+        className: 'operator',
+        begin: /(\*\*=|<<=|>>=|\.\.\.|\.\.|=>|->|==|!=|<=|>=|\+=|-=|\*=|\/=|%=|&=|\|=|\^=|\*\*|\+\+|--|::|<<|>>|[+\-*\/%&|^~=<>])/,
+        relevance: 0
+    };
+
+    const NAMESPACE = {
+        begin: [
+            /\b(package|import)\b/,
+            /\s+/,
+            /[a-zA-Z_][a-zA-Z0-9_.\-]*/
+        ],
+        beginScope: {
+            1: 'keyword',
+            3: 'title.class'
+        }
+    };
+
+    const FROM_IMPORT = {
+        begin: [
+            /\b(from)\b/,
+            /\s+/,
+            /[a-zA-Z_][a-zA-Z0-9_.\-]*/,
+            /\s+/,
+            /\b(import)\b/
+        ],
+        beginScope: {
+            1: 'keyword',
+            3: 'title.class',
+            5: 'keyword'
+        }
+    };
+
+    const FUNCTION_DEF = {
+        className: 'function',
+        beginKeywords: 'function property',
+        end: /[:;]/,
+        excludeEnd: true,
         contains: [
+            hljs.UNDERSCORE_TITLE_MODE,
             {
-                className: 'doctag',
-                begin: /@[a-zA-Z]+/
+                className: 'params',
+                begin: /\(/,
+                end: /\)/,
+                keywords: KEYWORDS,
+                contains: [
+                    STRING,
+                    DOCSTRING,
+                    NUMBER,
+                    LINE_COMMENT
+                ]
             }
         ]
     };
-    const LINE_LINE_COMMENT = {
-        className: 'comment',
-        begin: /#/,
-        end: /$/,
+
+    const CLASS_DEF = {
+        className: 'class',
+        beginKeywords: 'class interface struct enum trait type',
+        end: /[:;]/,
+        excludeEnd: true,
         contains: [
-            {
-                className: 'doctag',
-                begin: /@[a-zA-Z]+/
-            }
+            hljs.UNDERSCORE_TITLE_MODE
         ]
     };
-    
+
+    const ENUM_MEMBER = {
+        begin: [
+            /\b(unit)\b/,
+            /\s+/,
+            /[a-zA-Z_][a-zA-Z0-9_]*/
+        ],
+        beginScope: {
+            1: 'keyword',
+            3: 'variable.constant'
+        }
+    };
+
+    const NEW_EXPR = {
+        begin: [
+            /\b(new)\b/,
+            /\s+/,
+            /[A-Z][a-zA-Z0-9_]*/
+        ],
+        beginScope: {
+            1: 'keyword',
+            3: 'title.class'
+        }
+    };
+
+    const ASM_ARCH = {
+        className: 'meta',
+        begin: /^\s+(x86-64|x86|aarch64|arm|riscv64|riscv32|mips|wasm)\b/,
+        relevance: 5
+    };
+
     return {
         name: 'Uranite',
-        aliases: ['ae', 'uranite'],
+        aliases: ['urn', 'uranite'],
         keywords: KEYWORDS,
         contains: [
-            BLOCK_LINE_COMMENT,
-            LINE_LINE_COMMENT,
+            BLOCK_COMMENT,
+            LINE_COMMENT,
+            DOCSTRING,
             STRING,
             NUMBER,
-            {
-                className: 'function',
-                beginKeywords: 'function lambda',
-                end: /[:{]/,
-                excludeEnd: true,
-                contains: [
-                    hljs.UNDERSCORE_TITLE_MODE,
-                    {
-                        className: 'params',
-                        begin: /\(/,
-                        end: /\)/,
-                        keywords: KEYWORDS,
-                        contains: [
-                            STRING,
-                            NUMBER,
-                            LINE_COMMENT
-                        ]
-                    }
-                ]
-            },
-            {
-                className: 'class',
-                beginKeywords: 'class interface struct enum',
-                end: /[:;{]/,
-                contains: [
-                    hljs.UNDERSCORE_TITLE_MODE
-                ]
-            }
+            DECORATOR,
+            OPERATOR,
+            FROM_IMPORT,
+            NAMESPACE,
+            NEW_EXPR,
+            ENUM_MEMBER,
+            FUNCTION_DEF,
+            CLASS_DEF,
+            ASM_ARCH
         ]
     };
 }
