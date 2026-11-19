@@ -13,7 +13,7 @@ function uranite(hljs) {
             'return package import from use as delete new instanceof subclassof lambda unit ' +
             'backed property if elif else for while break continue yield pass ' +
             'defer export extern type const mut ref own move addressof unsafe virtual override ' +
-            'abstract static native and or not is in self parent asm volatile output input clobber',
+            'abstract static native naked and or not is in self parent asm volatile output input clobber',
         type:
             'I8 I16 I32 I64 U8 U16 U32 U64 F32 F64 Int UInt Float Double Boolean String Char Byte Bytes ' +
             'Long Integer Void NoneType Object Callable Meta Future Generator',
